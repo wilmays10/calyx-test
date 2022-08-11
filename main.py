@@ -6,6 +6,9 @@ from settings import BIBLIOTECAS, CINES, MUSEOS
 import logging
 import os
 
+# External library
+from sqlalchemy import func, insert
+
 from client import Client
 
 
@@ -48,16 +51,20 @@ def main():
     # conexión a la base de datos, se puede pasar por args nombre de la base, user, passw y host
     logging.debug('Inicio main script')
     logging.info('Inicio main script')
+
+    logging.debug('Descargando información')
+    logging.info('Descargando información')
+    # for k,v in urls.items():
+    #    cliente.get_data(k, v)
+
     bd_ok = cliente.connect()
 
     if bd_ok:
-        logging.debug('Descargando información')
-        logging.info('Descargando información')
-        #for k,v in urls.items():
-        #    cliente.get_data(k, v)
-
         # crea tabla principal en la bd
+        logging.debug('Creando tablas...')
+        logging.info('Creando tablas...')
         cliente.create_table('create_table_main.sql')
+        cliente.create_table('create_table_resume.sql')
 
         logging.debug('Procesando información')
         logging.info('Procesando información')
@@ -68,6 +75,44 @@ def main():
                     logging.debug(f'Cargando datos de {name_file}')
                     logging.info(f'Cargando datos de {name_file}')
                     cliente.load_data(f'{name_dir}/{name_file}')
+
+        cliente.create_metadata()
+
+        logging.debug('Realizando consultas.')
+        logging.info('Realizando consultas.')
+        centro_cultural_table = cliente.meta_data.tables['centro_cultural']
+        resume_table = cliente.meta_data.tables['resume']
+        categoria_col = centro_cultural_table.columns.get('categoria')
+        fuente_col = centro_cultural_table.columns.get('fuente')
+        prov_col = centro_cultural_table.columns.get('provincia')
+        result_cat = cliente.session.query(
+            categoria_col,
+            func.count(categoria_col)
+        ).group_by(categoria_col).all()
+        result_fuente = cliente.session.query(
+            fuente_col,
+            func.count(fuente_col)
+        ).group_by(fuente_col).all()
+        result_prov = cliente.session.query(
+            prov_col,
+            categoria_col,
+            func.count()
+        ).group_by(prov_col, categoria_col).all()
+
+        logging.debug('Cargando datos de resumen.')
+        logging.info('Cargando datos de resumen.')
+        for r in result_cat:
+            stmt = insert(resume_table).values(categoria=r[0], total=r[1])
+            cliente.execute(stmt)
+        for r in result_fuente:
+            stmt = insert(resume_table).values(fuente=r[0], total=r[1])
+            cliente.execute(stmt)
+        for r in result_prov:
+            stmt = insert(resume_table).values(provincia=r[0],
+                                               categoria=r[1],
+                                               total=r[2])
+            cliente.execute(stmt)
+
 
     logging.debug('Fin main script')
     logging.info('Fin main script')

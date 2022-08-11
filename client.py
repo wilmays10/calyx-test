@@ -11,7 +11,7 @@ import os
 import pandas as pd
 from settings import USERNAME, PASSWORD, PORT, HOST, DB
 from slugify import slugify
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy.exc import OperationalError, ProgrammingError, DataError
 from sqlalchemy.orm import sessionmaker
 import requests
@@ -25,6 +25,7 @@ class Client:
 
         self.engine = None
         self.session = None
+        self.meta_data = None
         self.connected = False
 
     def connect(self, database='calyx', user='calyx_dba', password='calyx',
@@ -44,6 +45,7 @@ class Client:
             Session = sessionmaker(bind=engine)
             self.engine = engine
             self.session = Session()
+
             self.connected = True
             logger.info('Conexión a la base de datos establecida')
 
@@ -52,6 +54,29 @@ class Client:
             sys.exit(1)
 
         return self.connected
+
+    def create_metadata(self):
+        """
+        Crea el objeto metadata para acceder a las tablas de la bd
+        :return: None
+        """
+        self.meta_data = MetaData(bind=self.engine)
+        MetaData.reflect(self.meta_data)
+        return
+
+    def execute(self, raw):
+        if self.connected:
+            try:
+                self.engine.execute(raw)
+                self.session.commit()
+                logger.info('Consulta ejecutada con éxito.')
+            except OperationalError as e:
+                logger.error(f'Error al conectarse a la base de datos: {e}')
+                sys.exit(1)
+            except ProgrammingError as e:
+                logger.info(f'La tabla que intenta crear ya existe: {e}')
+
+        return
 
     def create_table(self, file):
         """
@@ -63,14 +88,11 @@ class Client:
             try:
                 with open(file, 'r') as create_table:
                     data = create_table.read()
-                    self.engine.execute(data)
-                    self.session.commit()
-                    logger.info('Creación de tabla exitosa.')
-            except OperationalError as e:
-                logger.error(f'Error al conectarse a la base de datos: {e}')
-                sys.exit(1)
-            except ProgrammingError as e:
-                logger.info(f'La tabla que intenta crear ya existe: {e}')
+                    self.execute(data)
+            except IOError as e:
+                logger.error(f'Error al acceder al archivo {file}')
+
+        return
 
     def load_data(self, file):
         """
@@ -85,7 +107,7 @@ class Client:
             file_name = file.split('/')[2].split('-')
             cols = ['cod_loc', 'idprovincia', 'iddepartamento',
                     'categoria', 'provincia', 'localidad', 'nombre',
-                    'direccion', 'cp', 'telefono', 'mail', 'web'
+                    'direccion', 'cp', 'telefono', 'mail', 'web', 'fuente'
                     ]
             # crea el dataframe a partir del archivo descargado
             df = pd.read_csv(file, delimiter=',')
@@ -115,6 +137,8 @@ class Client:
             except KeyError as e:
                 logger.error(f'Error cargando dato de {file}: {e}')
 
+        return
+
     def get_data(self, category, url):
         """
         Obtiene el archivo csv de la url dada y lo guarda localmente
@@ -138,3 +162,5 @@ class Client:
                 f.write(line+'\n'.encode())
 
             logger.info('Archivo guardado con éxito.')
+
+        return

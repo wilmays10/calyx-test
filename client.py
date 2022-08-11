@@ -8,12 +8,12 @@ import sys
 import os
 
 # External library
-import pandas as pd
-from settings import USERNAME, PASSWORD, PORT, HOST, DB
+from decouple import config
 from slugify import slugify
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.exc import OperationalError, ProgrammingError, DataError
 from sqlalchemy.orm import sessionmaker
+import pandas as pd
 import requests
 
 
@@ -40,7 +40,7 @@ class Client:
         """
         result = False
         try:
-            url_db = f'{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB}'
+            url_db = config('URL_DB')
             engine = create_engine(f'postgresql://{url_db}')
             Session = sessionmaker(bind=engine)
             self.engine = engine

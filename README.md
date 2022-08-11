@@ -13,7 +13,8 @@ $ cd calix-test/
 ~~~
 
 Ejecutar el script 'init_db.sh' para configurar la base de datos.
-Ejecutar el script 'init_local.sh' para crear el entorno virtual y ejecutar los scripts correspondientes
+Ejecutar el script 'init_local.sh' para crear el entorno virtual y ejecutar los scripts correspondientes.
+Si quiere configurar otra base de datos, modifique el archivo .env
 ~~~
 $ ./init_db.sh
 $ ./init_local.sh

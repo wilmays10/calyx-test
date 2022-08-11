@@ -136,8 +136,8 @@ def main():
 
     logging.debug('Descargando información')
     logging.info('Descargando información')
-    # for k,v in urls.items():
-    #    cliente.get_data(k, v)
+    for k,v in urls.items():
+        cliente.get_data(k, v)
 
     bd_ok = cliente.connect()
 

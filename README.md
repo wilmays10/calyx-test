@@ -12,8 +12,10 @@ $ git clone git@github.com:wilmays10/calyx-test.git
 $ cd calix-test/
 ~~~
 
-Ejecutar el script 'init_local.sh'
+Ejecutar el script 'init_db.sh' para configurar la base de datos.
+Ejecutar el script 'init_local.sh' para crear el entorno virtual y ejecutar los scripts correspondientes
 ~~~
+$ ./init_db.sh
 $ ./init_local.sh
 ~~~
 
